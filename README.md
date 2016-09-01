@@ -1,4 +1,4 @@
-#Bigdata/Environment
+#dsantiago/big-data-environment
 
 Este repositório visa contemplar um ambiente de desenvolvimento para big data com as ferramentas principais dos desafios do dia-a-dia. 
 
