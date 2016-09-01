@@ -1,0 +1,57 @@
+version: '2'
+
+services:
+  cdh:
+    build:
+      context: .
+      dockerfile: Dockerfile-cdh
+    container_name: cdh
+    expose:
+      # YARN Ports
+      - "8042" # YARN interface
+      - "8088" # YARN interface
+      # HDFS Ports
+      - "8020"
+      - "9000"
+      - "50010"
+      - "50020"
+      - "50070"
+      # Hive Ports (Beeline e Web UI)
+      - "10000"
+    ports:
+      - "21050:21050" # Hue -> Impala
+      - "25000:25000" # Web impalad -> Impala
+      - "25010:25010" # Web state-store -> Impala
+      - "25020:25020" # Web catalogd -> Impala
+      - "9083:9083"   # Hive -> Thrift
+
+    volumes:
+      - ./files:/files
+      - hdfs-data:/data
+
+  hue:
+    build:
+      context: .
+      dockerfile: Dockerfile-hue
+    container_name: hue
+    ports:
+      - "8888:8888"
+    volumes:
+      - hue:/hue/desktop/
+    depends_on:
+      - cdh
+
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: passwd
+    volumes:
+      - mysql:/var/lib/mysql
+
+volumes:
+  hdfs-data:
+  hue:
+  mysql:

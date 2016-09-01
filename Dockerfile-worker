@@ -1,0 +1,43 @@
+FROM centos:6.6
+
+MAINTAINER diogo.melo@b2wdigital.com
+
+# Download CDH-5.5.2
+RUN curl -o /etc/yum.repos.d/cloudera-cdh5.repo https://archive.cloudera.com/cdh5/redhat/6/x86_64/cdh/cloudera-cdh5.repo
+
+# CDH 5.5.2
+RUN sed -i 's/\/5\//\/5.5.2\//' /etc/yum.repos.d/cloudera-cdh5.repo
+
+RUN yum update -y \
+    && yum install -y sudo impala-shell hive \
+    && yum clean all
+
+# JAVA 8
+RUN curl -LO 'http://download.oracle.com/otn-pub/java/jdk/8u102-b14/jdk-8u102-linux-x64.rpm' -H 'Cookie: oraclelicense=accept-securebackup-cookie'
+RUN rpm -i jdk-8u102-linux-x64.rpm
+RUN rm jdk-8u102-linux-x64.rpm
+
+ENV JAVA_HOME /usr/java/default
+ENV PATH $PATH:$JAVA_HOME/bin
+
+ENV HDFS_HOST cdh
+
+# Sqoop Env's
+ENV SQOOP_VERSION  1.4.6
+ENV HADOOP_VERSION 2.0.4
+ENV SQOOP_HOME /usr/lib/sqoop
+ENV PATH $PATH:$SQOOP_HOME/bin
+ENV HBASE_HOME /root
+ENV HCAT_HOME /root
+ENV ACCUMULO_HOME /root
+
+RUN curl -LO http://ftp.unicamp.br/pub/apache/sqoop/${SQOOP_VERSION}/sqoop-1.4.6.bin__hadoop-2.0.4-alpha.tar.gz
+
+RUN tar -zxf sqoop-*.tar.gz \
+    && mkdir $SQOOP_HOME \
+    && mv sqoop-*/* $SQOOP_HOME \
+    && rm -rf sqoop-*
+
+RUN sed -i s/HOSTNAME/${HDFS_HOST}/g /etc/hadoop/conf/*-site.xml
+
+CMD ["tail", "-f", "/dev/null"]

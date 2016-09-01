@@ -1,0 +1,61 @@
+<configuration>
+    <property>
+        <name>dfs.namenode.name.dir</name>
+        <value>file:///data/nn</value>
+    </property>
+    
+    <property>
+        <name>dfs.datanode.data.dir</name>
+        <value>file:///data/dn</value>
+    </property>
+
+    <property>
+        <name>dfs.datanode.data.dir.perm</name>
+        <value>755</value>
+    </property>
+
+    <property>
+        <name>dfs.replication</name>
+        <value>1</value>
+    </property>
+
+    <!-- IMPALA Configs -->
+    <property>
+		<name>dfs.client.read.shortcircuit</name>
+		<value>true</value>
+		<description>Turns on short-circuit local reads (default = false). Required for Impala.</description>
+	</property>
+
+    <property>
+       <name>dfs.block.local-path-access.user</name>
+       <value>impala</value>
+    </property>
+
+    <property>
+		<name>dfs.domain.socket.path</name>
+		<value>/var/run/hdfs-sockets/dn</value>
+		<description>
+			UNIX Socket Path that will be used for communication between the DataNode and local HDFS clients. (default = NULL). Required for Impala.
+		</description>
+	</property>
+
+    <property>
+		<name>dfs.client.file-block-storage-locations.timeout.millis</name>
+		<value>10000</value>
+		<description>
+			Timeout (in milliseconds) for the parallel RPCs made in DistributedFileSystem#getFileBlockStorageLocations() (default = 1000). Required for Impala.
+		</description>
+	</property>
+
+    <property>
+        <name>dfs.datanode.hdfs-blocks-metadata.enabled</name>
+        <value>true</value>
+    </property>
+
+    <!--
+    <property>
+        <name>dfs.client.use.legacy.blockreader.local</name>
+        <value>false</value>
+    </property>
+    -->
+</configuration>
