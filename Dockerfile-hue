@@ -1,6 +1,8 @@
 # Based on https://github.com/cloudera/hue/tree/master/tools/docker
 FROM gethue/hue:latest
 
+MAINTAINER diogo.felipe.santiago@gmail.com
+
 COPY configs/hue/pseudo-distributed.ini  desktop/conf
 
 CMD ["build/env/bin/hue", "runserver_plus", "0.0.0.0:8888"]
