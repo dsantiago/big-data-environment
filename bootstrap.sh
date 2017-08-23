@@ -34,7 +34,7 @@ if [[ ! $SCHEMA ]]; then
   echo "=== CRIANDO METADADOS ==="
   $HIVE_HOME/bin/schematool -dbType mysql -initSchema
 else
-  echo "=== METADADOS JÁ EXISTENTES ==="
+  echo "=== METADADOS JA EXISTENTES ==="
 fi
 
 echo "=== STARTING HIVE ==="

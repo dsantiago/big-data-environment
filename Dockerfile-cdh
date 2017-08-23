@@ -1,16 +1,15 @@
-FROM centos:6.6
+FROM centos:6
 
-MAINTAINER diogo.melo@b2wdigital.com
+MAINTAINER diogo.felipe.santiago@gmail.com
 
 RUN curl -o /etc/yum.repos.d/cloudera-cdh5.repo https://archive.cloudera.com/cdh5/redhat/6/x86_64/cdh/cloudera-cdh5.repo
 
-# CDH 5.5.2
-RUN sed -i 's/\/5\//\/5.5.2\//' /etc/yum.repos.d/cloudera-cdh5.repo
+# CHANGE HERE IF YOU NEED ANY SPECIFIC VERSION
+# RUN sed -i 's|5|5.5.2|' /etc/yum.repos.d/cloudera-cdh5.repo
 
-RUN yum update -y && yum install -y \
-    hadoop-hdfs-namenode \
+RUN yum update -y && yum install -y expect && \
+    unbuffer yum install -y hadoop-hdfs-namenode \
     hadoop-hdfs-datanode \
-    # hadoop-yarn-resourcemanager \
     hive \
     hive-server2 \
     impala \
@@ -18,13 +17,13 @@ RUN yum update -y && yum install -y \
     impala-state-store \
     impala-catalog \
     impala-shell \
-    sudo \
     && yum clean all
+    # hadoop-yarn-resourcemanager \
 
 # JAVA 8
-RUN curl -LO 'http://download.oracle.com/otn-pub/java/jdk/8u102-b14/jdk-8u102-linux-x64.rpm' -H 'Cookie: oraclelicense=accept-securebackup-cookie'
-RUN rpm -i jdk-8u102-linux-x64.rpm
-RUN rm jdk-8u102-linux-x64.rpm
+RUN curl -vjkLH "Cookie: oraclelicense=accept-securebackup-cookie" http://download.oracle.com/otn-pub/java/jdk/8u144-b01/090f390dda5b47b9b721c7dfaa008135/jdk-8u144-linux-x64.rpm > jdk-8u144-linux-x64.rpm
+RUN rpm -i jdk-*.rpm
+RUN rm jdk-*.rpm
 
 ENV JAVA_HOME /usr/java/default
 ENV PATH $PATH:$JAVA_HOME/bin
@@ -36,7 +35,7 @@ ENV HADOOP_HOME=/usr/lib/hadoop/ \
 
 COPY configs/hadoop/core-site.xml configs/hadoop/hdfs-site.xml $HADOOP_CONF_DIR
 
-RUN sed -i s/HOSTNAME/0.0.0.0/g $HADOOP_CONF_DIR/*-site.xml
+RUN sed -i 's|HOSTNAME|0.0.0.0|g' $HADOOP_CONF_DIR/*-site.xml
 
 RUN mkdir -p /data/nn/ /data/dn/ && chown hdfs:hadoop /data/*
 
@@ -56,13 +55,6 @@ ENV IMPALA_HOME=/usr/lib/impala/ \
 ### IMPALA ###
 COPY configs/hive/hive-site.xml /etc/impala/conf/
 
-RUN curl -LO http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.39.tar.gz
-
-RUN tar -zxf mysql-connector-* \
-    && cp mysql-connector-*/mysql-connector* $HIVE_HOME/lib \
-    && cp mysql-connector-*/mysql-connector* /var/lib/impala/ \
-    && rm -rf mysql-connector-*
-
 # Sqoop Env's
 ENV SQOOP_HOME /usr/lib/sqoop
 ENV PATH $PATH:$SQOOP_HOME/bin
@@ -78,10 +70,9 @@ RUN tar -zxf sqoop-*.tar.gz \
     && mv sqoop-*/* $SQOOP_HOME \
     && rm -rf sqoop-*
 
-RUN cp $HIVE_HOME/lib/mysql-* $SQOOP_HOME/lib
-
-### SPARK 1.6.1 ###
-RUN curl -LO http://ftp.unicamp.br/pub/apache/spark/spark-1.6.1/spark-1.6.1-bin-hadoop2.6.tgz
+### SPARK 2.2 ###
+#RUN curl -LO http://ftp.unicamp.br/pub/apache/spark/spark-2.2.0/spark-2.2.0-bin-hadoop2.6.tgz
+RUN curl -LO https://d3kbcqa49mib13.cloudfront.net/spark-2.2.0-bin-hadoop2.6.tgz
 
 ENV SPARK_HOME /usr/lib/spark
 ENV PATH $PATH:/usr/lib/spark/bin
@@ -92,16 +83,30 @@ RUN tar -zxf spark-*.tgz \
     && rm -rf spark-* \
     && cd $SPARK_HOME \
     && mv conf/log4j.properties.template conf/log4j.properties \
-    && sed -i 's/log4j.rootCategory=INFO/log4j.rootCategory=ERROR/' conf/log4j.properties
+    && sed -i 's|log4j.rootCategory=INFO|log4j.rootCategory=ERROR|' conf/log4j.properties
+
+RUN sed -i 's|HOSTNAME|${HDFS_HOST}|g' /etc/hadoop/conf/*-site.xml
+
+RUN cp $HIVE_CONF_DIR/hive-site.xml $SPARK_HOME/conf && \
+    cp $HADOOP_CONF_DIR/core-site.xml $SPARK_HOME/conf && \
+    cp $HADOOP_CONF_DIR/hdfs-site.xml $SPARK_HOME/conf
+
+#RUN curl -LO http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.39.tar.gz
+RUN curl -LO https://cdn.mysql.com//Downloads/Connector-J/mysql-connector-java-5.1.43.tar.gz
+
+RUN tar -zxf mysql-connector-* \
+    && cp mysql-connector-*/mysql-connector* $SQOOP_HOME/lib \
+    && cp mysql-connector-*/mysql-connector* $HIVE_HOME/lib \
+    && cp mysql-connector-*/mysql-connector* /var/lib/impala/ \
+    && cp mysql-connector-*/mysql-connector* $SPARK_HOME/jars \
+    && rm -rf mysql-connector-*
 
 ### PYTHON 2.7.10 ###
-RUN yum groupinstall -y "Development tools" \
-    && yum install -y zlib-devel \
+RUN unbuffer yum groupinstall -y "Development tools" \
+    && unbuffer yum install -y zlib-devel \
     bzip2-devel \
     openssl-devel \
     ncurses-devel \
-    sqlite-devel  \
-    vim \
     && yum clean all
 
 RUN curl -LO http://python.org/ftp/python/2.7.10/Python-2.7.10.tar.xz
@@ -112,10 +117,10 @@ RUN tar xf Python-*.tar.xz \
     && make && make altinstall \
     && rm -rf /Python*
 
-RUN sed -i s/HOSTNAME/${HDFS_HOST}/g /etc/hadoop/conf/*-site.xml
-
 RUN groupadd supergroup && usermod -a -G supergroup root
 
 COPY bootstrap.sh /etc/bootstrap.sh
+
+RUN chmod +x /etc/bootstrap.sh
 
 CMD ["/etc/bootstrap.sh", "-d"]
